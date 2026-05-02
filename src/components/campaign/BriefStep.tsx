@@ -3,7 +3,15 @@ import { useEffect } from "react";
 import { useCampaignStore } from "@/store/campaign";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Leaf } from "lucide-react";
+
+const ECO_COPY_TIPS = [
+  "Keep headlines under 8 words — shorter copy loads faster and converts better.",
+  "Use one strong CTA per asset instead of multiple — reduces cognitive load and page weight.",
+  "Prefer SVG icons over raster images for UI elements — infinitely scalable, near-zero bytes.",
+  "Avoid embedding fonts in images — use Cloudinary text overlays instead (zero extra file size).",
+  "Reuse one tagline across platforms with URL transforms rather than generating new copy per format.",
+];
 
 export function BriefStep() {
   const { idea, analysis, brief, setBrief, setStep, setLoading, setError, isLoading } = useCampaignStore();
@@ -89,6 +97,20 @@ export function BriefStep() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="step-card border-green-500/10">
+            <div className="flex items-center gap-2 mb-3">
+              <Leaf className="w-4 h-4 text-green-400" />
+              <h3 className="text-sm font-semibold text-green-400">Eco-Copy Tips</h3>
+            </div>
+            <ul className="space-y-1.5">
+              {ECO_COPY_TIPS.map((tip, i) => (
+                <li key={i} className="text-xs text-gray-400 flex items-start gap-1.5">
+                  <span className="text-green-500 mt-0.5 shrink-0">•</span> {tip}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       ) : null}

@@ -1,9 +1,9 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { computeSustainabilityMetrics } from "@/lib/sustainability";
 import { buildCloudinaryUrl, buildRawUrl } from "@/lib/cloudinary-url";
 import type { GeneratedAsset } from "@/types/campaign";
-import { Leaf, Zap, BarChart3, Recycle, TreePine, Clock, Gauge, Monitor } from "lucide-react";
+import { Leaf, Zap, BarChart3, Recycle, TreePine, Clock, Gauge, Monitor, Download, Target } from "lucide-react";
 
 function GreenRing({ score }: { score: number }) {
   const r = 36;
@@ -41,6 +41,7 @@ function ScoreBar({ label, value, max, color }: { label: string; value: number; 
 
 export function SustainabilityDashboard({ assets }: { assets: GeneratedAsset[] }) {
   const m = useMemo(() => computeSustainabilityMetrics(assets), [assets]);
+  const [budgetGrams, setBudgetGrams] = useState(5);
 
   // Estimated page load improvement: ~100ms per 100KB saved on 3G (1.6 Mbps)
   const loadTimeSavedMs = Math.round((m.savingsKb / 1024) * 5000);
@@ -49,6 +50,32 @@ export function SustainabilityDashboard({ assets }: { assets: GeneratedAsset[] }
   // Score breakdown (must match sustainability.ts logic)
   const compressionScore = Math.min(40, Math.round((m.savingsPct / 100) * 40));
   const reuseScore = Math.min(30, Math.round(((m.totalAssets - m.sourceAssets) / Math.max(m.totalAssets, 1)) * 30));
+
+  function exportReport() {
+    const report = {
+      generatedAt: new Date().toISOString(),
+      greenScore: m.greenScore,
+      totalAssets: m.totalAssets,
+      sourceAssets: m.sourceAssets,
+      bandwidthSavedMB: (m.savingsKb / 1024).toFixed(2),
+      savingsPct: m.savingsPct,
+      co2SavedGrams: m.co2SavedGrams,
+      dprSavingsMB: (m.dprSavingsKb / 1024).toFixed(2),
+      loadTimeSavedMs,
+      treesEquivalent,
+      recommendations: m.recommendations,
+      cloudinaryOptimizations: ["f_auto", "q_auto", "c_fill", "g_auto", "dpr_auto", "fl_progressive"],
+    };
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "sustainability-report.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  const budgetUsedPct = Math.min(100, Math.round((m.co2SavedGrams / budgetGrams) * 100));
+  const underBudget = m.co2SavedGrams <= budgetGrams;
 
   const stats = [
     { icon: BarChart3, label: "Bandwidth Saved", value: `${(m.savingsKb / 1024).toFixed(1)} MB`, sub: `${m.savingsPct}% reduction`, color: "text-brand-400" },
@@ -76,6 +103,48 @@ export function SustainabilityDashboard({ assets }: { assets: GeneratedAsset[] }
           </div>
         </div>
       </div>
+
+      {/* Carbon Budget Tracker */}
+      <div className="step-card space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-green-400" />
+            <p className="text-xs font-semibold text-gray-300">Carbon Budget</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span>Target:</span>
+            <input
+              type="number"
+              min={0.1}
+              max={100}
+              step={0.1}
+              value={budgetGrams}
+              onChange={(e) => setBudgetGrams(parseFloat(e.target.value) || 1)}
+              className="w-16 bg-white/5 border border-white/10 rounded px-2 py-0.5 text-white text-xs text-center"
+            />
+            <span>g CO₂</span>
+          </div>
+        </div>
+        <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${underBudget ? "bg-green-400" : "bg-red-400"}`}
+            style={{ width: `${budgetUsedPct}%` }}
+          />
+        </div>
+        <p className="text-[10px] text-gray-500">
+          {underBudget
+            ? `✓ Within budget — ${m.co2SavedGrams}g of ${budgetGrams}g used (${budgetUsedPct}%)`
+            : `⚠ Over budget — ${m.co2SavedGrams}g emitted vs ${budgetGrams}g target. Reduce source assets or enable AVIF.`}
+        </p>
+      </div>
+
+      {/* Export Report */}
+      <button
+        onClick={exportReport}
+        className="w-full flex items-center justify-center gap-2 text-xs text-green-400 border border-green-500/20 bg-green-500/5 hover:bg-green-500/10 rounded-xl py-2.5 transition-colors"
+      >
+        <Download className="w-3.5 h-3.5" /> Export Sustainability Report (JSON)
+      </button>
 
       {/* Metrics grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
