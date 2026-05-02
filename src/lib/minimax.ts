@@ -2,12 +2,12 @@ import axios from "axios";
 
 const MINIMAX_CHAT_URL = "https://api.minimax.io/v1/text/chatcompletion_v2";
 const MINIMAX_IMAGE_URL = "https://api.minimax.io/v1/image_generation";
-const API_KEY = process.env.MINIMAX_API_KEY!;
 
-const chatHeaders = {
-  Authorization: `Bearer ${API_KEY}`,
-  "content-type": "application/json",
-};
+function authHeaders() {
+  const key = process.env.MINIMAX_API_KEY;
+  if (!key) throw new Error("MINIMAX_API_KEY is not set");
+  return { Authorization: `Bearer ${key}`, "content-type": "application/json" };
+}
 
 export async function minimaxText(prompt: string, systemPrompt?: string): Promise<string> {
   const messages = [];
@@ -18,7 +18,7 @@ export async function minimaxText(prompt: string, systemPrompt?: string): Promis
     const res = await axios.post(
       MINIMAX_CHAT_URL,
       { model: "MiniMax-M2.7", messages, max_tokens: 4096 },
-      { headers: chatHeaders }
+      { headers: authHeaders() }
     );
 
     const content = res.data?.choices?.[0]?.message?.content;
@@ -49,7 +49,7 @@ export async function minimaxVision(prompt: string, imageUrl: string): Promise<s
         },
       ],
     },
-    { headers: chatHeaders }
+    { headers: authHeaders() }
   );
 
   const content = res.data?.choices?.[0]?.message?.content;
@@ -61,7 +61,7 @@ export async function minimaxGenerateImage(prompt: string): Promise<string> {
   const res = await axios.post(
     MINIMAX_IMAGE_URL,
     { model: "image-01", prompt, n: 1, response_format: "url" },
-    { headers: chatHeaders }
+    { headers: authHeaders() }
   );
   const d = res.data as Record<string, unknown>;
 
